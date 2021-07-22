@@ -4,7 +4,7 @@ A module for generating key properties of molecules needed to generate molecular
 """
 
 import rdkit
-import ntpath
+import os
 import numpy as np
 import pandas as pd
 from rdkit import Chem
@@ -52,7 +52,7 @@ class Molecule(Chem.Mol):
         Returns: molecule_name
         Type: string
         """
-        filename = ntpath.basename(self.path_to_pdb)
+        filename = os.path.basename(self.path_to_pdb)
         molecule_name = filename[:-4]
         return molecule_name
 
@@ -198,8 +198,3 @@ class Molecule(Chem.Mol):
         bond_block = '@<TRIPOS>BOND\n' + tripos_bond.to_string(header=False) + '\n'
 
         return bond_block
-
-
-if __name__ == "__main__":
-    mol = Molecule('/Users/matthewholland/OneDrive/Oxford/HCIE/VEHICLE_PDBs/S12345.pdb')
-    print(mol.molecule_block() + mol.atom_block() + mol.bond_block())
