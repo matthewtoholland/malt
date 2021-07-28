@@ -3,7 +3,7 @@ Module with the methods to generate TRIPOS Mol2 blocks, and save them to a file
 """
 
 import rdkit
-from classes import Molecule
+from .classes import Molecule
 
 def molecule_block(path_to_pdb_file):
     """
