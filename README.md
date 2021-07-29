@@ -4,16 +4,16 @@ Malt is a small package for converting .pdb molecular geometry files into TRIPOS
 ## Installation
 Currently this Repo is the only source of this code. To install it, clone the repository into the desired directory on your local machine using 
 
-'git clone https://github.com/matthewtoholland/malt.git'
+`git clone https://github.com/matthewtoholland/malt.git`
 
 Then create and activate a new virtual environment. Using Conda this would be
-'''
+```
 conda env create -f environment.yml
 conda activate malt
-'''
+```
 
 Finally install the package to your local environment using
-'python setup.py install'
+`python setup.py install`
 from the command line. 
 
 ## Usage
@@ -24,13 +24,13 @@ The process of generating a molecular block in the TRIPOS MOL2 format and saving
 
 For a single molecule in a pdb file
 
-'''
+```
 from malt import methods
 from malt.methods import molecule_block, write_mol2
 
 block = molecule_block('/path/to/pdb/file.pdb')
 write_mol2(block, 'file_as_mol2.mol2')
-'''
+```
 
 ### Multiple Molecules
 
