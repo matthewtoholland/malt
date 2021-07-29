@@ -1,6 +1,7 @@
 # malt
-Malt is a small package for converting .pdb molecular geometry files into TRIPOS .mol2 files, crucially including atomic partial charges as a fourth coordinate for each constituent atom. It is limited in its scope, and is likely to be updated  only if useful to my research. It is free to use for all that may find it useful.
 ---
+Malt is a small package for converting .pdb molecular geometry files into TRIPOS .mol2 files, crucially including atomic partial charges as a fourth coordinate for each constituent atom. It is limited in its scope, and is likely to be updated  only if useful to my research. It is free to use for all that may find it useful.
+
 ## Installation
 Currently this Repo is the only source of this code. To install it, clone the repository into the desired directory on your local machine using 
 
