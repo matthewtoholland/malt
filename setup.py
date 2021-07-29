@@ -6,4 +6,4 @@ setup(name='malt',
       version='1.0.0',
       license='MIT',
       author='Matthew Holland',
-      description='GitHub Actions Cookie-Cutter')
+      description='A package for converting pdb files into TRIPOS MOL2 files')
