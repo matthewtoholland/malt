@@ -10,7 +10,7 @@ def molecule_block(path_to_pdb_file):
     Generates the TRIPOS Mol2 block for a given molecule, returned as a string
     """
     mol = Molecule(path_to_pdb_file)
-    block = mol.molecule_block() + mol.atom_block() + mol.bond_block()
+    block = mol.molecule_block() + mol.atom_block() + mol.bond_block() + '\n'
 
     return block
 
