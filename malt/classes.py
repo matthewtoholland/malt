@@ -14,6 +14,7 @@ from biopandas.pdb import PandasPdb
 #Some user-defined variables - at the moment these are hard-coded, I may find a better way of doing it later
 NO_SUBSTRUCTS = 1
 MOLECULE_TYPE = 'SMALL'
+PARTIAL_CHARGES = 'GASTEIGER'
 
 #Dictionaries that map RDKit properties to those expected in TRIPOS Mol2 Files
 bond_types = {
@@ -111,7 +112,7 @@ class Molecule(Chem.Mol):
         Calculates and returns, in the correct format, the '@<TRIPOS>MOLECULE' block for the instance of the molecule
         The number of features and sets are hard-coded to 0
         """
-        molecule_block = f'@<TRIPOS>MOLECULE\n{self.name()}\n{self.no_atoms()} {self.no_bonds()} {NO_SUBSTRUCTS} 0 0\n{MOLECULE_TYPE}\n'
+        molecule_block = f'@<TRIPOS>MOLECULE\n{self.name()}\n{self.no_atoms()} {self.no_bonds()} {NO_SUBSTRUCTS} 0 0\n{MOLECULE_TYPE}\n{PARTIAL_CHARGES}\n'
         return molecule_block
 
     @get_partial_charges
