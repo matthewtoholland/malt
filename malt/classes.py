@@ -199,3 +199,35 @@ class Molecule(Chem.Mol):
         bond_block = '@<TRIPOS>BOND\n' + tripos_bond.to_string(header=False) + '\n'
 
         return bond_block
+
+class xyz(pd.DataFrame):
+    
+    def __init__(self, path_to_xyz):
+        self.path_to_xyz = path_to_xyz
+        xyz = pd.read_csv(path_to_xyz, names=['atom', 'x', 'y', 'z'], skiprows=[0,1], sep='\s+')
+        super().__init__(xyz)
+
+    def get_xcoord(self, atom_idx):
+        """
+        Returns the x coordinate of the atom with index atom_idx
+        """
+        x_coord = self['x'][atom_idx]
+
+        return x_coord
+
+    def get_ycoord(self, atom_idx):
+        """
+        Returns the y coordinate of the atom with index atom_idx
+        """
+        y_coord = self['y'][atom_idx]
+
+        return y_coord
+
+    def get_zcoord(self, atom_idx):
+        """
+        Returns the z coordinate of the atom with index atom_idx
+        """
+        z_coord = self['z'][atom_idx]
+
+        return z_coord
+        
