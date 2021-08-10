@@ -2,26 +2,22 @@
 Module with the methods to generate TRIPOS Mol2 blocks, and save them to a file
 """
 
-import rdkit
-from .classes import Molecule
+from classes import Molecule
 
-def molecule_block(path_to_pdb_file):
+def molecule_block(*args, **kwargs):
     """
     Generates the TRIPOS Mol2 block for a given molecule, returned as a string
     """
-    mol = Molecule(path_to_pdb_file)
+    mol = Molecule(*args, **kwargs)
     block = mol.molecule_block() + mol.atom_block() + mol.bond_block() + '\n'
 
     return block
 
-def write_mol2(input, filename):
+def string2mol2(filename, string):
     """
-    Writes molecule to filename.mol2 file, input can either be path to .pdb file, or a string of Mol2 blocks
+    Writes molecule to filename.mol2 file, input is a string of Mol2 blocks
     """
-    if input[-4:] == '.pdb':
-        block = molecule_block(input)
-    else: 
-        block = input
+    block = string
     
     if filename[-4:] != '.mol2':
         filename += '.mol2'
@@ -31,3 +27,16 @@ def write_mol2(input, filename):
 
     return None
 
+def molecule2mol2(filename, *args, **kwargs):
+    """"
+    Creates a Mol2 block out of molecule files, and then saves to filename.mol2
+    """
+    block = molecule_block(*args, **kwargs)
+
+    if filename[-4:] != '.mol2':
+        filename += '.mol2'
+
+    with open(filename, 'w') as file:
+        file.write(block)
+    
+    return None
