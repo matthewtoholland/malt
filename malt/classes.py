@@ -14,7 +14,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import rdqueries, rdPartialCharges
 from biopandas.pdb import PandasPdb
-from xyztomol import mol_from_xyz, read_xyz_file
+from .xyztomol import mol_from_xyz, read_xyz_file
 
 #Some user-defined variables - at the moment these are hard-coded, I may find a better way of doing it later
 NO_SUBSTRUCTS = 1
