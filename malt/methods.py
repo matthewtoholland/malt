@@ -1,6 +1,7 @@
 """
 Module with the methods to generate TRIPOS Mol2 blocks, and save them to a file
 """
+import os
 
 from .classes import Molecule
 
@@ -41,8 +42,34 @@ def molecule2mol2(filename, *args, **kwargs):
     
     return None
 
-def mols2mol2(filename, num_of_molecules, *args, **kwargs):
+def mols2mol2(filename, num_of_molecules, **kwargs):
     """
     loops through 1 to num_of_molecules and writes them sequentially to a mol2 file
+    args:
+        path_to_pdb = path to directory of pdb files
+        path_to_xyz = path to directory of xyz files
+        path_to_charges = file containing charges for each atom of each molecule
+        CalculateCharges = Bool - False if providing a file in path_to_charges
     """
+    for key, value in kwargs.items():
+        if key =='path_to_pdb':
+            pdb_path = value
+        elif key == 'path_to_xyz':
+            xyz_path = value
+        elif key == 'path_to_charges':
+            charge_path = value
+        elif key == 'CalculateCharges':
+            Calculate = value
+    
+    for mol in range(1, num_of_molecules +1):
+        pdb = os.path.join(pdb_path, f'S{mol}.pdb')
+        xyz = os.path.join(xyz_path, f's{mol}.xyz')
+
+
+        block = molecule_block(pdb, xyz, charge_path, CalculateCharges=Calculate)
+        
+        with open(filename, 'a+') as file:
+            file.write(block)
+
+    return None
     
