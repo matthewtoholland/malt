@@ -40,6 +40,7 @@ class Molecule:
     def __init__(self, *args, CalculateCharges=True):
         self.path_to_xyz = None
         self._mol = None
+        self._pdb_mol = None
         self._xyz_mol = None
         self.charges = None
         self.name = None
@@ -54,7 +55,7 @@ class Molecule:
             for arg in args:
                 if arg.endswith('.pdb'):
                     path_to_pdb = arg
-                    self._mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
+                    self._pdb_mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
                     self.name = os.path.basename(path_to_pdb)[:-4]
                     self.index = int(self.name[1:])
                 elif arg.endswith('.xyz'):
@@ -62,6 +63,10 @@ class Molecule:
                     self._xyz_mol = mol_from_xyz(self.path_to_xyz)
                 elif CalculateCharges == False:
                     path_to_charges = arg
+
+        #If xyz file is provided, preferentially use the information from this over that of a pdb file
+        if self._xyz_mol != None:
+            self._mol = self._xyz_mol
 
         #Set various attributes
         self.num_bonds = len(self._mol.GetBonds())

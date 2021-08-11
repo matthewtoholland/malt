@@ -40,3 +40,9 @@ def molecule2mol2(filename, *args, **kwargs):
         file.write(block)
     
     return None
+
+def mols2mol2(filename, num_of_molecules, *args, **kwargs):
+    """
+    loops through 1 to num_of_molecules and writes them sequentially to a mol2 file
+    """
+    
