@@ -51,6 +51,8 @@ class Molecule:
         self.num_atoms = None
         self.index = None
         self._CalculateCharges = CalculateCharges
+        self.atom_dict = None
+        self.atoms = []
 
 
         #Intialise rdkit mol objects for the input files
@@ -248,3 +250,38 @@ class Molecule:
         bond_block = '@<TRIPOS>BOND\n' + tripos_bond.to_string(header=False) + '\n'
 
         return bond_block
+
+    def create_dict(self):
+        """
+        Creates dictionary of atom information - required for calculating electroshape as implemented in oddt
+        """
+        self.create_atom_list()
+        atoms = self.atoms
+        atom_dtype = [('name', object), ('coords', np.float32, 3), ('radius', np.float32), ('charge', np.float32)]
+        atom_dict = np.empty(len(atoms), dtype=atom_dtype)
+        for atom in self._mol.GetAtoms():
+            idx = atom.GetIdx()
+            name = atom.GetSymbol() + str(idx)
+            radius = Chem.GetPeriodicTable().GetRcovalent(atom.GetAtomicNum())
+            charge = self.charges[idx]
+            all_coords = self.coords[idx]
+            coords = [all_coords[0], all_coords[1], all_coords[2]]
+            atom_dict[idx] = (name, coords, radius, charge)
+        self.atom_dict = atom_dict
+
+    def create_atom_list(self):
+        """
+        Creates list of atom information required for calculating electroshape as implemented in oddt
+        """
+        atoms = []
+        for atom in self._mol.GetAtoms():
+            idx = atom.GetIdx()
+            name = atom.GetSymbol() + str(idx)
+            charge = self.charges[idx]
+            xcoor = self.coords[idx][0]
+            ycoor = self.coords[idx][1]
+            zcoor = self.coords[idx][2]
+            radius = Chem.GetPeriodicTable().GetRcovalent(atom.GetAtomicNum())
+            atom = [name, xcoor, ycoor, zcoor, radius, charge]
+            atoms.append(atom)
+        self.atoms = atoms

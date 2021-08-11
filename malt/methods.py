@@ -2,8 +2,10 @@
 Module with the methods to generate TRIPOS Mol2 blocks, and save them to a file
 """
 import os
+import oddt
+from oddt import shape
 
-from .classes import Molecule
+from malt.classes import Molecule
 
 def molecule_block(*args, **kwargs):
     """
@@ -42,6 +44,7 @@ def molecule2mol2(filename, *args, **kwargs):
     
     return None
 
+
 def mols2mol2(filename, num_of_molecules, **kwargs):
     """
     loops through 1 to num_of_molecules and writes them sequentially to a mol2 file
@@ -72,4 +75,32 @@ def mols2mol2(filename, num_of_molecules, **kwargs):
             file.write(block)
 
     return None
-    
+
+def electroshape(filename, num_of_molecules, **kwargs):
+    """
+    Calculates electroshape, as implemented in oddt, for molecules from 1 to num_of_molecules, and saves to csv file
+    """
+    for key, value in kwargs.items():
+        if key =='path_to_pdb':
+            pdb_path = value
+        elif key == 'path_to_xyz':
+            xyz_path = value
+        elif key == 'path_to_charges':
+            charge_path = value
+        elif key == 'CalculateCharges':
+            Calculate = value
+
+    for mol in range(1, num_of_molecules +1):
+        pdb = os.path.join(pdb_path, f'S{mol}.pdb')
+        xyz = os.path.join(xyz_path, f's{mol}.xyz')
+
+        molecule = Molecule(pdb, xyz, charge_path, CalculateCharges=Calculate)
+        molecule.create_dict()
+        elecshape = list(shape.electroshape(molecule))
+
+        line = f'S{mol}, {elecshape} \n'
+
+        with open(filename, 'a+') as file:
+            file.write(line)
+
+    return None
