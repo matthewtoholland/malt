@@ -27,12 +27,15 @@ bond_types = {
     'DOUBLE': '2',
     'TRIPLE': '3',
 }
+
+#The SP3D entry is a patch for a bug in the xyz implementation of S169, which does not register as aromatic.
 atom_types = {
     'SP': '1',
     'SP2': '2',
     'SP3': '3',
     'AROMATIC': 'ar',
-    'S': ''
+    'S': '', 
+    'SP3D': '2'
 }
 
 class Molecule:
@@ -67,6 +70,8 @@ class Molecule:
         #If xyz file is provided, preferentially use the information from this over that of a pdb file
         if self._xyz_mol != None:
             self._mol = self._xyz_mol
+        else:
+            self._mol = self._pdb_mol 
 
         #Set various attributes
         self.num_bonds = len(self._mol.GetBonds())
@@ -185,6 +190,8 @@ class Molecule:
             if symbol == 'C' or symbol == 'N':
                 if atom.GetIsAromatic():
                     sybyl = f'{symbol}.ar'
+                else:
+                    sybyl = f'{symbol}.{atom_types[str(atom.GetHybridization())]}'
             elif symbol == 'H':
                 sybyl = 'H'
             else:
