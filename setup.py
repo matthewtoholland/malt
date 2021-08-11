@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(name='malt',
       packages=['malt'],
-      version='2.0.1',
+      version='2.1.0',
       license='MIT',
       author='Matthew Holland',
       description='A package for converting pdb files into TRIPOS MOL2 files')
