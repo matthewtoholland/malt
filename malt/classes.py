@@ -53,6 +53,7 @@ class Molecule:
         self._CalculateCharges = CalculateCharges
         self.atom_dict = None
         self.atoms = []
+        self.smiles = None
 
 
         #Intialise rdkit mol objects for the input files
@@ -89,6 +90,9 @@ class Molecule:
             self.charges = gasteiger_charges 
         else:
             self.get_external_charges(path_to_charges)
+
+        #Set smiles
+        self.smiles = Chem.MolToSmiles(self._mol)
                 
 
     def elements(self):

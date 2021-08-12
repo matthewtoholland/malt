@@ -97,8 +97,9 @@ def electroshape(filename, num_of_molecules, **kwargs):
         molecule = Molecule(pdb, xyz, charge_path, CalculateCharges=Calculate)
         molecule.create_dict()
         elecshape = list(shape.electroshape(molecule))
+        smiles = molecule.smiles
 
-        line = f'S{mol}, {elecshape} \n'
+        line = f'S{mol},{smiles}, {elecshape} \n'
 
         with open(filename, 'a+') as file:
             file.write(line)
