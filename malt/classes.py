@@ -11,9 +11,10 @@ import os
 import csv
 import numpy as np
 import pandas as pd
+from csv import reader 
+from oddt import shape
 from rdkit import Chem
 from rdkit.Chem import rdqueries, rdPartialCharges
-from biopandas.pdb import PandasPdb
 from .xyztomol import mol_from_xyz, read_xyz_file
 
 #Some user-defined variables - at the moment these are hard-coded, I may find a better way of doing it later
@@ -103,7 +104,8 @@ class Molecule:
         for atom in self._mol.GetAtoms():
             if atom.GetSymbol() not in element_dict:
                 element_dict[atom.GetSymbol()] = atom.GetAtomicNum()
-        #now sort dictionary into TRIPOS format - increasing atomic no. with H at the end
+
+        #Now sort dictionary into TRIPOS format - increasing atomic no. with H at the end
         element_dict = dict(sorted(element_dict.items(), key = lambda item: item[1]))
         elements = [key for key in element_dict]
         if 'H' in elements:
@@ -289,3 +291,48 @@ class Molecule:
             atom = [name, xcoor, ycoor, zcoor, radius, charge]
             atoms.append(atom)
         self.atoms = atoms
+
+    def electroshape(self):
+        """
+        Calculates the electroshape vector for the molecule
+        """
+        self.create_dict()
+        elecshape = list(shape.electroshape(self))
+
+        return elecshape
+
+    def filter_electroshape(self, n=100):
+        """
+        returns the top n (default is 100) most similar molecules in the VEHICLE database by electroshape
+        """
+
+        vehicle_path = '/Users/matthewholland/OneDrive/Oxford/Malt/malt/Data/dft_electroshape.csv'
+
+        with open(vehicle_path, 'r') as file:
+            csv_reader = reader(file)
+            vehicle_data = []
+            for row in csv_reader:
+                molecule_index = row[0]
+                smiles = row[1]
+                electroshape_vector = row[2:]
+                electroshape_vector = [float(num) for num in electroshape_vector]
+                mol_data = [molecule_index, smiles, electroshape_vector]
+                vehicle_data.append(mol_data)
+
+        electroframe = pd.DataFrame(vehicle_data, columns=['Index', 'smiles', 'electro_vector'])
+        electroframe = electroframe.set_index('Index')
+        electroframe.insert(2, 'similarity', 0.0)
+
+        query = np.array(self.electroshape())
+        
+        for idx in electroframe.index:
+            electroframe.at[idx, 'similarity'] = shape.usr_similarity(query, np.array(electroframe.at[idx, 'electro_vector']))
+
+        electroframe = electroframe.sort_values(by=['similarity'], ascending=False, ignore_index=False)
+        electroframe = electroframe.round({'similarity': 3})
+
+        electroframe = electroframe.head(n)
+
+        electroframe.to_csv(f'{self.name}_electroshape_similarity', columns=['smiles', 'similarity'], index=True)
+
+        return None

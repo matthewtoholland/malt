@@ -3,6 +3,7 @@ Module with the methods to generate TRIPOS Mol2 blocks, and save them to a file
 """
 import os
 import oddt
+import pandas as pd
 from oddt import shape
 
 from malt.classes import Molecule
