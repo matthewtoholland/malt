@@ -11,11 +11,15 @@ import os
 import csv
 import numpy as np
 import pandas as pd
+import pkg_resources
 from csv import reader 
 from oddt import shape
 from rdkit import Chem
-from rdkit.Chem import rdqueries, rdPartialCharges
-from .xyztomol import mol_from_xyz, read_xyz_file
+from rdkit.Chem import rdPartialCharges
+from .xyztomol import mol_from_xyz
+
+#Set path to package data files referenced within the code
+VEHICLE_ELECTROSHAPE = pkg_resources.resource_filename('malt', 'Data/dft_electroshape.csv')
 
 #Some user-defined variables - at the moment these are hard-coded, I may find a better way of doing it later
 NO_SUBSTRUCTS = 1
@@ -306,9 +310,7 @@ class Molecule:
         returns the top n (default is 100) most similar molecules in the VEHICLE database by electroshape
         """
 
-        vehicle_path = '/Users/matthewholland/OneDrive/Oxford/Malt/malt/Data/dft_electroshape.csv'
-
-        with open(vehicle_path, 'r') as file:
+        with open(VEHICLE_ELECTROSHAPE, 'r') as file:
             csv_reader = reader(file)
             vehicle_data = []
             for row in csv_reader:
