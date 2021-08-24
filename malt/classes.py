@@ -6,7 +6,6 @@ Currently this implementation only works if the xyz files have the same atom ind
 
 """
 
-import rdkit
 import os
 import csv
 import numpy as np
@@ -81,7 +80,6 @@ class Molecule:
                     path_to_charges = arg
                 elif arg[0] == 'S' or 's':
                     mol = mol2(arg)
-                    print('Yes')
                     self._mol =  mol.mol_from_mol2()
                     s_flag = True
 
