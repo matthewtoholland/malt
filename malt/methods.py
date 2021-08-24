@@ -77,33 +77,3 @@ def mols2mol2(filename, num_of_molecules, **kwargs):
 
     return None
 
-def electroshape(filename, num_of_molecules, **kwargs):
-    """
-    Calculates electroshape, as implemented in oddt, for molecules from 1 to num_of_molecules, and saves to csv file
-    """
-    for key, value in kwargs.items():
-        if key =='path_to_pdb':
-            pdb_path = value
-        elif key == 'path_to_xyz':
-            xyz_path = value
-        elif key == 'path_to_charges':
-            charge_path = value
-        elif key == 'CalculateCharges':
-            Calculate = value
-
-    for mol in range(1, num_of_molecules +1):
-        pdb = os.path.join(pdb_path, f'S{mol}.pdb')
-        xyz = os.path.join(xyz_path, f's{mol}.xyz')
-
-        molecule = Molecule(pdb, xyz, charge_path, CalculateCharges=Calculate)
-        molecule.create_dict()
-        elecshape = shape.electroshape(molecule)
-        elecshape = [str(number) for number in elecshape]
-        smiles = molecule.smiles
-
-        line = f'S{mol},{smiles},{",".join(elecshape)} \n'
-
-        with open(filename, 'a+') as file:
-            file.write(line)
-
-    return None
