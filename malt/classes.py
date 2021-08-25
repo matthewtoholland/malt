@@ -81,6 +81,7 @@ class Molecule:
                     mol = mol2(arg)
                     self._mol =  mol.mol_from_mol2()
                     s_flag = True
+                    self.name = arg[0]
 
         #If xyz file is provided, preferentially use the information from this over that of a pdb file
         if self._xyz_mol != None:
@@ -108,7 +109,6 @@ class Molecule:
         #Set smiles
         self.smiles = Chem.MolToSmiles(self._mol)
 
-        self.create_atom_list()
                 
 
     def elements(self):
@@ -272,4 +272,21 @@ class Molecule:
 
         return bond_block
 
-    
+    def print_mol2_file(self, filename=None):
+        """
+        Saves the current instance of the molecule to a mol2 file in the current directory
+        """
+
+        if filename == None:
+            file_name = f'{self.name}.mol2'
+        elif filename[-5:] == '.mol2':
+            file_name = filename
+        else:
+            file_name = f'{filename}.mol2'
+
+        block = self.molecule_block() + self.atom_block() + self.bond_block()
+
+        with open(file_name, 'w') as file:
+            file.write(block)
+
+        return None

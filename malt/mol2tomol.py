@@ -25,6 +25,12 @@ class mol2:
             csv_reader = csv.reader(file)
             self.vehicle = list(csv_reader)
 
+        #Set number of atoms and bonds
+        lists = self.get_block_lists()
+        self.num_atoms = int(lists[2][0].split()[0])
+        self.num_bonds = int(lists[2][0].split()[1])
+
+
     def get_block_lists(self):
         """
         Returns the mol2 block for the molecule with ID mol_id as a list of lists - useful for isolating charges and 
@@ -80,3 +86,51 @@ class mol2:
                     charges.append(charge)
         
         return charges
+
+    def get_molecule_block(self):
+        """
+        Extracts the molecule block from the mol2 file for the instance of mol2
+        """
+
+        molecule_block = ''
+        block_lists = self.get_block_lists()
+
+        for idx, list in enumerate(block_lists):
+            if '@<TRIPOS>ATOM' in list[0]:
+                break
+            else:
+                molecule_block += list[0] + '\n'
+        
+        return molecule_block
+
+
+    def get_atom_block(self):
+        """
+        Extracts the atom block from the mol2 file for the instance of mol2
+        """
+
+        atom_block = ''
+        block_lists = self.get_block_lists()
+
+        for idx, list in enumerate(block_lists):
+            if '@<TRIPOS>ATOM' in list[0]:
+                for i in range(idx, idx + self.num_atoms + 1):
+                    atom_block += block_lists[i][0] + '\n'
+        
+        return atom_block
+
+    def get_bond_block(self):
+        """
+        Extracts the atom block from the mol2 file for the instance of mol2
+        """
+
+        bond_block = ''
+        block_lists = self.get_block_lists()
+
+        for idx, list in enumerate(block_lists):
+            if '@<TRIPOS>BOND' in list[0]:
+                for i in range(idx, idx + self.num_bonds +1):
+                    bond_block += block_lists[i][0] + '\n'
+
+        return bond_block
+        
