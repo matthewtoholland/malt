@@ -6,15 +6,23 @@ Currently this implementation only works if the xyz files have the same atom ind
 
 """
 
-import rdkit
 import os
 import csv
 import numpy as np
 import pandas as pd
+import pkg_resources
+from csv import reader 
+from oddt import shape
 from rdkit import Chem
-from rdkit.Chem import rdqueries, rdPartialCharges
-from biopandas.pdb import PandasPdb
-from .xyztomol import mol_from_xyz, read_xyz_file
+from rdkit.Chem import rdPartialCharges
+from malt.xyztomol import mol_from_xyz
+from malt.mol2tomol import mol2
+
+
+#Set path to package data files referenced within the code
+VEHICLE_ELECTROSHAPE = pkg_resources.resource_filename('malt', 'Data/dft_electroshape.csv')
+VEHICLE_MOL2 = pkg_resources.resource_filename('malt', 'Data/vehicle_dft.mol2')
+
 
 #Some user-defined variables - at the moment these are hard-coded, I may find a better way of doing it later
 NO_SUBSTRUCTS = 1
@@ -27,12 +35,15 @@ bond_types = {
     'DOUBLE': '2',
     'TRIPLE': '3',
 }
+
+#The SP3D entry is a patch for a bug in the xyz implementation of S169, which does not register as aromatic.
 atom_types = {
     'SP': '1',
     'SP2': '2',
     'SP3': '3',
     'AROMATIC': 'ar',
-    'S': ''
+    'S': '', 
+    'SP3D': '2'
 }
 
 class Molecule:
@@ -40,6 +51,7 @@ class Molecule:
     def __init__(self, *args, CalculateCharges=True):
         self.path_to_xyz = None
         self._mol = None
+        self._pdb_mol = None
         self._xyz_mol = None
         self.charges = None
         self.name = None
@@ -47,6 +59,9 @@ class Molecule:
         self.num_atoms = None
         self.index = None
         self._CalculateCharges = CalculateCharges
+        self.atom_dict = None
+        self.atoms = []
+        self.smiles = None
 
 
         #Intialise rdkit mol objects for the input files
@@ -54,7 +69,7 @@ class Molecule:
             for arg in args:
                 if arg.endswith('.pdb'):
                     path_to_pdb = arg
-                    self._mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
+                    self._pdb_mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
                     self.name = os.path.basename(path_to_pdb)[:-4]
                     self.index = int(self.name[1:])
                 elif arg.endswith('.xyz'):
@@ -62,13 +77,26 @@ class Molecule:
                     self._xyz_mol = mol_from_xyz(self.path_to_xyz)
                 elif CalculateCharges == False:
                     path_to_charges = arg
+                elif arg[0] == 'S' or 's':
+                    self._mol2 = mol2(arg)
+                    self._mol =  self._mol2.mol_from_mol2()
+                    self.s_flag = True
+                    self.name = arg[0]
+
+        #If xyz file is provided, preferentially use the information from this over that of a pdb file
+        if self._xyz_mol != None:
+            self._mol = self._xyz_mol
+        elif self._pdb_mol != None:
+            self._mol = self._pdb_mol 
 
         #Set various attributes
         self.num_bonds = len(self._mol.GetBonds())
         self.num_atoms = len(self._mol.GetAtoms())
 
         #Set charges
-        if CalculateCharges == True:
+        if self.s_flag == True:
+            self.charges = self._mol2.get_charges()
+        elif self._CalculateCharges == True:
             rdPartialCharges.ComputeGasteigerCharges(self._mol)
             gasteiger_charges = []
             for atom in self._mol.GetAtoms():
@@ -77,6 +105,10 @@ class Molecule:
             self.charges = gasteiger_charges 
         else:
             self.get_external_charges(path_to_charges)
+
+        #Set smiles
+        self.smiles = Chem.MolToSmiles(self._mol)
+
                 
 
     def elements(self):
@@ -87,7 +119,8 @@ class Molecule:
         for atom in self._mol.GetAtoms():
             if atom.GetSymbol() not in element_dict:
                 element_dict[atom.GetSymbol()] = atom.GetAtomicNum()
-        #now sort dictionary into TRIPOS format - increasing atomic no. with H at the end
+
+        #Now sort dictionary into TRIPOS format - increasing atomic no. with H at the end
         element_dict = dict(sorted(element_dict.items(), key = lambda item: item[1]))
         elements = [key for key in element_dict]
         if 'H' in elements:
@@ -137,6 +170,11 @@ class Molecule:
         Calculates and returns, in the correct format, the '@<TRIPOS>MOLECULE' block for the instance of the molecule
         The number of features and sets are hard-coded to 0
         """
+        if self.s_flag == True:
+            molecule_block = self._mol2.get_molecule_block()
+            
+            return molecule_block
+
         if self._CalculateCharges == True:
             charge_type = 'GASTEIGER'
         else:
@@ -155,6 +193,11 @@ class Molecule:
         Computes and returns, in the correct format, the '@<TRIPOS>ATOM block for the instance of the molecule. This calculates partial charges using rdkit's
         implementation of the Gasteiger partial charges. Atomic coordinates are extracted from the pdb file.
         """
+        if self.s_flag == True:
+            atom_block = self._mol2.get_atom_block()
+
+            return atom_block
+
         tripos_atom = pd.DataFrame(columns=['rdkit_index', 'atom_name', 'x_coord', 'y_coord',
                                             'z_coord', 'sybyl', 'substruct', 'substruct_name',
                                              'partial_charge', 'atom_symbol', 'atom_index_label'])
@@ -180,6 +223,8 @@ class Molecule:
             if symbol == 'C' or symbol == 'N':
                 if atom.GetIsAromatic():
                     sybyl = f'{symbol}.ar'
+                else:
+                    sybyl = f'{symbol}.{atom_types[str(atom.GetHybridization())]}'
             elif symbol == 'H':
                 sybyl = 'H'
             else:
@@ -211,6 +256,12 @@ class Molecule:
         return atom_block 
 
     def bond_block(self):
+
+        if self.s_flag == True:
+            bond_block = self._mol2.get_bond_block()
+
+            return bond_block
+
         tripos_bond = pd.DataFrame(
             columns=['begin_atom_rdkit', 'end_atom_rdkit', 'bond_type'])
     
@@ -236,3 +287,22 @@ class Molecule:
         bond_block = '@<TRIPOS>BOND\n' + tripos_bond.to_string(header=False) + '\n'
 
         return bond_block
+
+    def print_mol2_file(self, filename=None):
+        """
+        Saves the current instance of the molecule to a mol2 file in the current directory
+        """
+
+        if filename == None:
+            file_name = f'{self.name}.mol2'
+        elif filename[-5:] == '.mol2':
+            file_name = filename
+        else:
+            file_name = f'{filename}.mol2'
+
+        block = self.molecule_block() + self.atom_block() + self.bond_block()
+
+        with open(file_name, 'w') as file:
+            file.write(block)
+
+        return None
