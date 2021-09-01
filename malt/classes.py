@@ -62,6 +62,7 @@ class Molecule:
         self.atom_dict = None
         self.atoms = []
         self.smiles = None
+        self.s_flag = False
 
 
         #Intialise rdkit mol objects for the input files
@@ -81,7 +82,7 @@ class Molecule:
                     self._mol2 = mol2(arg)
                     self._mol =  self._mol2.mol_from_mol2()
                     self.s_flag = True
-                    self.name = arg[0]
+                    self.name = arg
 
         #If xyz file is provided, preferentially use the information from this over that of a pdb file
         if self._xyz_mol != None:
