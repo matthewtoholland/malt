@@ -76,6 +76,10 @@ class Molecule:
                 elif arg.endswith('.xyz'):
                     self.path_to_xyz = arg
                     self._xyz_mol = mol_from_xyz(self.path_to_xyz)
+                elif arg.endswith('.mol2'):
+                    path_to_mol2 = arg
+                    self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
+                    self.name = path_to_mol2[:-5]
                 elif CalculateCharges == False:
                     path_to_charges = arg
                 elif arg[0] == 'S' or 's':
