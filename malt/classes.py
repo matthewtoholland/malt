@@ -152,8 +152,13 @@ class Molecule:
         with open(filename, 'r') as file:
             csv_reader = csv.reader(file)
             all_charges = list(csv_reader)
+
+        if self.index == None:
+            index = 1
+        else:
+            index = self.index
         
-        self.charges = all_charges[self.index -1]
+        self.charges = all_charges[index -1]
         self.charges = [float(charge) for charge in self.charges]
 
         return None
