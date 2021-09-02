@@ -8,7 +8,7 @@ from rdkit import Chem
 MOL2_DICT = pkg_resources.resource_filename('malt', 'Data/mol2_dictionary.json')
 VEHICLE_MOL2 = pkg_resources.resource_filename('malt', 'Data/vehicle_dft.mol2')
 
-class mol2:
+class vehicle_mol2:
 
     def __init__(self, mol_id, *args):
         self.mol = None
@@ -133,4 +133,39 @@ class mol2:
                     bond_block += block_lists[i][0] + '\n'
 
         return bond_block
+
+class mol2:
+
+    def __init__(self, mol2_file):
+        self.mol = None
+        self.charges = []
+
+        #Initialise the RDKit molecule
+        self.mol = Chem.MolFromMol2File(mol2_file)
+
+        #Read in the mol2 file
+        with open(mol2_file, 'r') as file:
+            csv_reader = csv.reader(file)
+            self.mol2 = list(csv_reader)
+
+        #Assign the charges
+        self.charges = self.get_charges()
+
+    def get_charges(self):
+        """
+        Returns a list of the atomic charges, ordered by atom index, for the instance of the class
+        """
+
+        charges = []
+        block_lists = self.mol2
+
+        for idx, list in enumerate(block_lists):
+            if idx > 5:
+                if '@<TRIPOS>BOND' in list[0]:
+                    break
+                else:
+                    list = list[0].split()
+                    charge = float(list[-1])
+                    charges.append(charge)
         
+        return charges

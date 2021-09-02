@@ -16,7 +16,7 @@ from oddt import shape
 from rdkit import Chem
 from rdkit.Chem import rdPartialCharges
 from malt.xyztomol import mol_from_xyz
-from malt.mol2tomol import mol2
+from malt.mol2tomol import vehicle_mol2, mol2
 
 
 #Set path to package data files referenced within the code
@@ -51,6 +51,7 @@ class Molecule:
     def __init__(self, *args, CalculateCharges=True):
         self.path_to_xyz = None
         self._mol = None
+        self._mol2 = None
         self._pdb_mol = None
         self._xyz_mol = None
         self.charges = None
@@ -68,22 +69,31 @@ class Molecule:
         #Intialise rdkit mol objects for the input files
         if len(args) > 0:
             for arg in args:
+                #Read in pdb details
                 if arg.endswith('.pdb'):
                     path_to_pdb = arg
                     self._pdb_mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
                     self.name = os.path.basename(path_to_pdb)[:-4]
                     self.index = int(self.name[1:])
+
+                #Initialise xyz details
                 elif arg.endswith('.xyz'):
                     self.path_to_xyz = arg
                     self._xyz_mol = mol_from_xyz(self.path_to_xyz)
+
+                #Intialise mol2
                 elif arg.endswith('.mol2'):
                     path_to_mol2 = arg
+                    self._mol2 = mol2(path_to_mol2)
                     self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
                     self.name = path_to_mol2[:-5]
+
                 elif CalculateCharges == False:
-                    path_to_charges = arg
+                    self._path_to_charges = arg
+
+                #Molecule is already within VEHICLe database
                 elif arg[0] == 'S' or 's':
-                    self._mol2 = mol2(arg)
+                    self._mol2 = vehicle_mol2(arg)
                     self._mol =  self._mol2.mol_from_mol2()
                     self.s_flag = True
                     self.name = arg
@@ -99,8 +109,23 @@ class Molecule:
         self.num_atoms = len(self._mol.GetAtoms())
 
         #Set charges
-        if self.s_flag == True:
+        self.set_charges()
+
+        #Set smiles
+        self.smiles = Chem.MolToSmiles(self._mol)
+
+
+    def set_charges(self):
+        """
+        Set the self.charge attribute - this depends on the charge information provided
+        """
+
+        if len(self.charges) !=0:
+            return 
+        
+        elif self._mol2 != None:
             self.charges = self._mol2.get_charges()
+            return
         elif self._CalculateCharges == True:
             rdPartialCharges.ComputeGasteigerCharges(self._mol)
             gasteiger_charges = []
@@ -108,11 +133,11 @@ class Molecule:
                 charge = float(atom.GetProp('_GasteigerCharge'))
                 gasteiger_charges.append(charge)
             self.charges = gasteiger_charges 
+            return
         else:
-            self.get_external_charges(path_to_charges)
+            self.get_external_charges(self._path_to_charges)
+            return
 
-        #Set smiles
-        self.smiles = Chem.MolToSmiles(self._mol)
 
                 
 
