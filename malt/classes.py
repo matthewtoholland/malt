@@ -14,7 +14,7 @@ import pkg_resources
 from csv import reader 
 from oddt import shape
 from rdkit import Chem
-from rdkit.Chem import rdPartialCharges
+from rdkit.Chem import rdPartialCharges, AllChem
 from malt.xyztomol import mol_from_xyz
 from malt.mol2tomol import vehicle_mol2, mol2
 
@@ -48,14 +48,14 @@ atom_types = {
 
 class Molecule:
 
-    def __init__(self, *args, CalculateCharges=True):
+    def __init__(self, *args, CalculateCharges=True, smiles=None, name=None):
         self.path_to_xyz = None
         self._mol = None
         self._mol2 = None
         self._pdb_mol = None
         self._xyz_mol = None
         self.charges = None
-        self.name = None
+        self.name = name
         self.num_bonds = None
         self.num_atoms = None
         self.index = None
@@ -73,8 +73,9 @@ class Molecule:
                 if arg.endswith('.pdb'):
                     path_to_pdb = arg
                     self._pdb_mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
-                    self.name = os.path.basename(path_to_pdb)[:-4]
-                    self.index = int(self.name[1:])
+                    if self.name != None:
+                        self.name = os.path.basename(path_to_pdb)[:-4]
+                        self.index = int(self.name[1:])
 
                 #Initialise xyz details
                 elif arg.endswith('.xyz'):
@@ -86,7 +87,8 @@ class Molecule:
                     path_to_mol2 = arg
                     self._mol2 = mol2(path_to_mol2)
                     self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
-                    self.name = path_to_mol2[:-5]
+                    if self.name != None:
+                        self.name = path_to_mol2[:-5]
 
                 elif CalculateCharges == False:
                     self._path_to_charges = arg
@@ -96,7 +98,13 @@ class Molecule:
                     self._mol2 = vehicle_mol2(arg)
                     self._mol =  self._mol2.mol_from_mol2()
                     self.s_flag = True
-                    self.name = arg
+                    if self.name != None:
+                        self.name = arg
+
+        elif smiles != None:
+            self.smiles = smiles
+            self._mol = Chem.MolFromSmiles(smiles)
+            self._mol = Chem.AddHs(self._mol)
 
         #If xyz file is provided, preferentially use the information from this over that of a pdb file
         if self._xyz_mol != None:
@@ -112,7 +120,8 @@ class Molecule:
         self.set_charges()
 
         #Set smiles
-        self.smiles = Chem.MolToSmiles(self._mol)
+        if self.smiles !=None:
+            self.smiles = Chem.MolToSmiles(self._mol)
 
 
     def set_charges(self):
@@ -120,7 +129,7 @@ class Molecule:
         Set the self.charge attribute - this depends on the charge information provided
         """
 
-        if len(self.charges) !=0:
+        if self.charges != None:
             return 
         
         elif self._mol2 != None:
@@ -198,6 +207,8 @@ class Molecule:
         if self._xyz_mol != None:
             return self._xyz_mol.GetConformer(0).GetPositions()
         else:
+            Chem.AddHs(self._mol)
+            AllChem.EmbedMolecule(self._mol)
             return self._mol.GetConformer(0).GetPositions()
 
     def molecule_block(self):
