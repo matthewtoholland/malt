@@ -105,6 +105,8 @@ class Molecule:
             self.smiles = smiles
             self._mol = Chem.MolFromSmiles(smiles)
             self._mol = Chem.AddHs(self._mol)
+            AllChem.EmbedMolecule(self._mol)
+            AllChem.MMFFOptimizeMolecule(self._mol)
 
         #If xyz file is provided, preferentially use the information from this over that of a pdb file
         if self._xyz_mol != None:
@@ -207,8 +209,6 @@ class Molecule:
         if self._xyz_mol != None:
             return self._xyz_mol.GetConformer(0).GetPositions()
         else:
-            Chem.AddHs(self._mol)
-            AllChem.EmbedMolecule(self._mol)
             return self._mol.GetConformer(0).GetPositions()
 
     def molecule_block(self):
