@@ -73,7 +73,7 @@ class Molecule:
                 if arg.endswith('.pdb'):
                     path_to_pdb = arg
                     self._pdb_mol = Chem.MolFromPDBFile(path_to_pdb, removeHs=False)
-                    if self.name != None:
+                    if self.name == None:
                         self.name = os.path.basename(path_to_pdb)[:-4]
                         self.index = int(self.name[1:])
 
@@ -85,9 +85,10 @@ class Molecule:
                 #Intialise mol2
                 elif arg.endswith('.mol2'):
                     path_to_mol2 = arg
+                    print('chicken')
                     self._mol2 = mol2(path_to_mol2)
                     self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
-                    if self.name != None:
+                    if self.name == None:
                         self.name = path_to_mol2[:-5]
 
                 elif CalculateCharges == False:
@@ -98,7 +99,7 @@ class Molecule:
                     self._mol2 = vehicle_mol2(arg)
                     self._mol =  self._mol2.mol_from_mol2()
                     self.s_flag = True
-                    if self.name != None:
+                    if self.name == None:
                         self.name = arg
 
         elif smiles != None:
@@ -122,7 +123,7 @@ class Molecule:
         self.set_charges()
 
         #Set smiles
-        if self.smiles !=None:
+        if self.smiles == None:
             self.smiles = Chem.MolToSmiles(self._mol)
 
 
