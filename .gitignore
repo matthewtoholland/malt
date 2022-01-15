@@ -1,0 +1,12 @@
+mol2.ipynb
+.vscode
+test_data
+__pycache__
+malt.egg-info
+build
+dist
+legacy
+research_scripts
+.DS_Store
+
+.idea/

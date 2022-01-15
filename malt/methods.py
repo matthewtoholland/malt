@@ -66,7 +66,8 @@ def mols2mol2(filename, num_of_molecules, **kwargs):
             Calculate = value
     
     for mol in range(1, num_of_molecules +1):
-        pdb = os.path.join(pdb_path, f'S{mol}.pdb')
+        if pdb_path is not None:
+            pdb = os.path.join(pdb_path, f'S{mol}.pdb')
         xyz = os.path.join(xyz_path, f's{mol}.xyz')
 
 
