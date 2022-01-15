@@ -46,7 +46,8 @@ def molecule2mol2(filename, *args, **kwargs):
     return None
 
 
-def mols2mol2(filename, num_of_molecules, **kwargs):
+def mols2mol2(filename, num_of_molecules, first_index=1, filename_pattern =
+'S', **kwargs):
     """
     loops through 1 to num_of_molecules and writes them sequentially to a mol2 file
     args:
@@ -55,6 +56,7 @@ def mols2mol2(filename, num_of_molecules, **kwargs):
         path_to_charges = file containing charges for each atom of each molecule
         CalculateCharges = Bool - False if providing a file in path_to_charges
     """
+    pdb_path = None
     for key, value in kwargs.items():
         if key =='path_to_pdb':
             pdb_path = value
@@ -65,10 +67,12 @@ def mols2mol2(filename, num_of_molecules, **kwargs):
         elif key == 'CalculateCharges':
             Calculate = value
     
-    for mol in range(1, num_of_molecules +1):
+    for mol in range(first_index, num_of_molecules +1):
         if pdb_path is not None:
-            pdb = os.path.join(pdb_path, f'S{mol}.pdb')
-        xyz = os.path.join(xyz_path, f's{mol}.xyz')
+            pdb = os.path.join(pdb_path, f'{filename_pattern}{mol}.pdb')
+        else:
+            pdb = None
+        xyz = os.path.join(xyz_path, f'{filename_pattern}{mol}.xyz')
 
 
         block = molecule_block(pdb, xyz, charge_path, CalculateCharges=Calculate)
