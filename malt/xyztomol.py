@@ -706,8 +706,10 @@ def mol_from_xyz(filepath):
     quick = True
 
     atomicNumList, charge, xyz_coordinates = read_xyz_file(filepath)
-    #print(xyz_coordinates)
+    # print(xyz_coordinates)
     mol = xyz2mol(atomicNumList, xyz_coordinates, charge, charged_fragments, quick)
 
-    #Code returns a list of conformers, for the purposes of this package only one molecule is needed, take the first one
+    # Code returns a list of resonance forms, for the purposes of this package
+    # only one molecule is needed, take the first one
+
     return mol[0] 
