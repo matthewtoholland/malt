@@ -47,7 +47,7 @@ def molecule2mol2(filename, *args, **kwargs):
 
 
 def mols2mol2(filename, num_of_molecules, first_index=1, filename_pattern =
-'S', **kwargs):
+'S',charge_pattern=None, **kwargs):
     """
     loops through 1 to num_of_molecules and writes them sequentially to a mol2 file
     args:
@@ -72,10 +72,17 @@ def mols2mol2(filename, num_of_molecules, first_index=1, filename_pattern =
             pdb = os.path.join(pdb_path, f'{filename_pattern}{mol}.pdb')
         else:
             pdb = None
+        if charge_pattern is not None:
+            charges = os.path.join(charge_path, f'{charge_pattern}'
+                                                    f'{mol}.csv')
+        else:
+            charges=charge_path
+
         xyz = os.path.join(xyz_path, f'{filename_pattern}{mol}.xyz')
 
+        print(xyz)
 
-        block = molecule_block(pdb, xyz, charge_path, CalculateCharges=Calculate)
+        block = molecule_block(pdb, xyz, charges, CalculateCharges=Calculate)
         
         with open(filename, 'a+') as file:
             file.write(block)
