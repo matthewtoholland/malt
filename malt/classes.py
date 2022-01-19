@@ -1,9 +1,6 @@
-"""A module for generating key properties of molecules needed to generate
+"""
+A module for generating key properties of molecules needed to generate
 molecular file formats, specifically aimed at Tripos .mol2 files.
-
-Currently this implementation only works if the xyz files have the same atom
-indices as the pdb files.
-
 """
 
 import numpy as np
@@ -74,6 +71,7 @@ class Molecule:
         self.length = no_of_mols
         self.charge_path = charge_path
         self.xyz_path = xyz_path
+        self.index_lookup = None
 
         self.mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
         AllChem.EmbedMolecule(self.mol)
@@ -82,6 +80,119 @@ class Molecule:
         self.coordinates = self.get_xyz_coordinates()
 
         self.set_coordinates()
+
+    def molecule_block(self):
+        """
+        Calculates and returns, in the correct format, the '@<TRIPOS>MOLECULE'
+        block for the instance of the molecule.
+        The number of features and sets are hard-coded to 0
+        """
+        charge_type = 'DFT'
+
+        molecule_block = (f'@<TRIPOS>MOLECULE\n'
+                          f'{self.smiles}\n'
+                          f'{self.num_atoms} {self.num_bonds} {NO_SUBSTRUCTS} 0 0\n '
+                          f'{MOLECULE_TYPE}\n'
+                          f'{charge_type}\n')
+
+        return molecule_block
+
+    def atom_block(self):
+        """
+        Computes and returns, in the correct format, the '@<TRIPOS>ATOM
+        block for the instance of the molecule.
+        """
+
+        tripos_atom = pd.DataFrame(
+            columns=['rdkit_index', 'atom_name', 'x_coord', 'y_coord',
+                     'z_coord', 'sybyl', 'substruct', 'substruct_name',
+                     'partial_charge', 'atom_symbol', 'atom_index_label'])
+
+        substruct_name = self.smiles
+
+        for atom in self.mol.GetAtoms():
+            atom_idx = atom.GetIdx()
+            symbol = atom.GetSymbol()
+            charge = self.charges[atom_idx]
+
+            # Get co-ordinates for each atom
+            atom_coords = self.coordinates[atom_idx]
+            x, y, z = self.get_coordinates_from_list(atom_coords)
+
+            atom_index_label = self.get_atom_index_label(symbol, atom_idx)
+            atom_name = self.get_atom_name(symbol, atom_index_label)
+
+            sybyl = self.generate_sybyl_code(atom)
+
+            # Append atom to dataframe of atomic information
+            tripos_atom = tripos_atom.append(
+                {'rdkit_index': atom_idx, 'atom_name': atom_name,
+                 'x_coord': x,
+                 'y_coord': y, 'z_coord': z,
+                 'sybyl': sybyl, 'substruct': NO_SUBSTRUCTS,
+                 'substruct_name': substruct_name,
+                 'partial_charge': "%.3f" % charge,
+                 'atom_symbol': symbol, 'atom_index_label': atom_index_label},
+                ignore_index=True)
+
+        tripos_atom = self.sort_atom_dataframe(tripos_atom)
+
+        # TRIPOS atom ID and RDKit index are not the same, need to generate
+        # a mapping from one to t'other
+        self.index_lookup = self.generate_index_mapper(tripos_atom)
+
+        # Generate final dataframe, and return as a string
+        atom_block_df = tripos_atom[['atom_name', 'x_coord',
+                                     'y_coord', 'z_coord', 'sybyl',
+                                     'partial_charge']]
+
+        atom_block = '@<TRIPOS>ATOM\n' + atom_block_df.to_string(
+            header=False) + '\n'
+
+        return atom_block
+
+    def bond_block(self):
+        """
+        Generates and returns the TRIPOS Bond Block for the instance of the
+        molecule - ATOM Block must have been generated first for this to work
+        :return: string - TRIPOS bond block for molecule
+        """
+
+        # atom block must have been created for bond block to be created
+        if self.index_lookup is None:
+            print('Atom Block must be generated before Bond Block')
+            return
+
+        bond_block = self.get_bond_dataframe(self.mol)
+
+        # Convert RDKit indices to TRIPOS atom ID numbers so there is
+        # consistency between ATOM block and BOND block
+        sorted_block = self.sort_bond_dataframe(bond_block)
+
+        bond_block = '@<TRIPOS>BOND\n' + sorted_block.to_string(
+            header=False) + '\n'
+
+        return bond_block
+
+    def print_mol2_file(self, filename=None):
+        """
+        Saves the current instance of the molecule to a mol2 file in the
+        current directory
+        """
+
+        if filename is None:
+            file_name = f'{self.smiles}.mol2'
+        elif filename[-5:] == '.mol2':
+            file_name = filename
+        else:
+            file_name = f'{filename}.mol2'
+
+        block = self.molecule_block() + self.atom_block() + self.bond_block()
+
+        with open(file_name, 'w') as file:
+            file.write(block)
+
+        return None
 
     @property
     def num_atoms(self):
@@ -165,8 +276,7 @@ class Molecule:
         :return: list sorted into Tripos format
         """
         element_dict = dict((sorted(element_dict.items(),
-                                                key=lambda
-            item: item[1])))
+                                    key=lambda item: item[1])))
         elements = [key for key in element_dict]
 
         if 'H' in elements:
@@ -203,22 +313,6 @@ class Molecule:
 
         return mol_by_elements
 
-    def molecule_block(self):
-        """
-        Calculates and returns, in the correct format, the '@<TRIPOS>MOLECULE'
-        block for the instance of the molecule.
-        The number of features and sets are hard-coded to 0
-        """
-        charge_type = 'DFT'
-
-        molecule_block = (f'@<TRIPOS>MOLECULE\n'
-                          f'{self.smiles}\n'
-                          f'{self.num_atoms} {self.num_bonds} {NO_SUBSTRUCTS} 0 0\n'
-                          f'{MOLECULE_TYPE}\n'
-                          f'{charge_type}\n')
-
-        return molecule_block
-
     @staticmethod
     def generate_sybyl_code(atom):
         """
@@ -241,10 +335,9 @@ class Molecule:
 
         return sybyl
 
-    def get_atom_index_label(self, atom, symbol, atom_index):
+    def get_atom_index_label(self, symbol, atom_index):
         """
         Generates the TRIPOS atom index label
-        :param atom: RDKit atom object
         :param symbol: symbol of RDKit atom
         :param atom_index: index of atom in RDKit mol object
         :return: string = TRIPOS atom name
@@ -275,74 +368,41 @@ class Molecule:
 
         dataframe = dataframe.sort_values(by=['atom_symbol',
                                               'atom_index_label'])
-        dataframe.index = np.arange(1, len(dataframe)+1)
+        dataframe.index = np.arange(1, len(dataframe) + 1)
 
         return dataframe
 
-    def atom_block(self):
+    @staticmethod
+    def generate_index_mapper(dataframe):
         """
-        Computes and returns, in the correct format, the '@<TRIPOS>ATOM
-        block for the instance of the molecule.
+        TRIPOS Atom ID's and RDKit atom indices are not the same - a mapping is
+        needed between the rdkit indices and the TRIPOS indices to generate
+        the bond block.
+        :param dataframe: pandas dataframe containing the information for
+        the TRIPOS atom block
+        :return: dictionary mapping rdkit atom ID's to TRIPOS atom ID's
         """
+        index_mapper = pd.DataFrame(data=np.arange(1, len(dataframe) + 1),
+                                    index=dataframe['rdkit_index'])
 
-        tripos_atom = pd.DataFrame(
-            columns=['rdkit_index', 'atom_name', 'x_coord', 'y_coord',
-                     'z_coord', 'sybyl', 'substruct', 'substruct_name',
-                     'partial_charge', 'atom_symbol', 'atom_index_label'])
-
-        substruct_name = self.smiles
-
-        for atom in self.mol.GetAtoms():
-            atom_idx = atom.GetIdx()
-            symbol = atom.GetSymbol()
-            charge = self.charges[atom_idx]
-
-            # Get co-ordinates for each atom
-            atom_coords = self.coordinates[atom_idx]
-            x, y, z = self.get_coordinates_from_list(atom_coords)
-
-            atom_index_label = self.get_atom_index_label(atom, symbol,
-                                                         atom_idx)
-            atom_name = self.get_atom_name(symbol, atom_index_label)
-
-            sybyl = self.generate_sybyl_code(atom)
-
-            # Append atom to dataframe of atomic information
-            tripos_atom = tripos_atom.append(
-                {'rdkit_index': atom_idx, 'atom_name': atom_name,
-                 'x_coord': x,
-                 'y_coord': y, 'z_coord': z,
-                 'sybyl': sybyl, 'substruct': NO_SUBSTRUCTS,
-                 'substruct_name': substruct_name,
-                 'partial_charge': "%.3f" % charge,
-                 'atom_symbol': symbol, 'atom_index_label': atom_index_label},
-                ignore_index=True)
-
-        tripos_atom = self.sort_atom_dataframe(tripos_atom)
-
-        # TRIPOS atom ID and RDKit index are not the same, need to generate
-        # a mapping from one to t'other
-        index_mapper = pd.DataFrame(data=np.arange(1, len(tripos_atom) + 1),
-                                    index=tripos_atom['rdkit_index'])
-        global index_lookup
         index_lookup = index_mapper.to_dict()[0]
 
-        # Generate final dataframe, and return as a string
-        atom_block_df = tripos_atom[['atom_name', 'x_coord',
-                                     'y_coord', 'z_coord', 'sybyl',
-                                     'partial_charge']]
+        return index_lookup
 
-        atom_block = '@<TRIPOS>ATOM\n' + atom_block_df.to_string(
-            header=False) + '\n'
-
-        return atom_block
-
-    def bond_block(self):
+    @staticmethod
+    def get_bond_dataframe(mol_object):
+        """
+        Generates a pandas dataframe containing the information necessary to
+        construct the TRIPOS bond block
+        :param mol_object: RDKit mol object
+        :return: pandas dataframe of bond indices (beginning and end),
+        and TRIPOS bond type
+        """
 
         tripos_bond = pd.DataFrame(
             columns=['begin_atom_rdkit', 'end_atom_rdkit', 'bond_type'])
 
-        for index, bond in enumerate(self.mol.GetBonds()):
+        for index, bond in enumerate(mol_object.GetBonds()):
             beginning = bond.GetBeginAtom().GetIdx()
             end = bond.GetEndAtom().GetIdx()
 
@@ -354,39 +414,30 @@ class Molecule:
                 {'begin_atom_rdkit': beginning, 'end_atom_rdkit': end,
                  'bond_type': bond_type}, ignore_index=True)
 
-        # Convert RDKit indices to TRIPOS atom ID numbers so there is
-        # consistency between ATOM block and BOND block
-        tripos_bond['begin'] = tripos_bond.apply(
-            lambda row: index_lookup[row.begin_atom_rdkit], axis=1)
-        tripos_bond['end'] = tripos_bond.apply(
-            lambda row: index_lookup[row.end_atom_rdkit], axis=1)
-        tripos_bond['bond_type'] = pd.Categorical(tripos_bond['bond_type'],
-                                                  list(bond_types.values()))
-        tripos_bond = tripos_bond.sort_values(by=['bond_type', 'begin'])
+        return tripos_bond
+
+    def sort_bond_dataframe(self, dataframe):
+        """
+        Converts RDKit indices in dataframe into TRIPOS atom ID numbers so
+        atom ID's are consistent between atom and bond block. Then sorts by
+        bond ID
+        :param dataframe: pandas dataframe containing bond block information
+        :return: pandas dataframe sorted by bond ID, with atom ID's replaced
+        with TRIPOS ID's
+        """
+        # Replace beginning and end atom indices with TRIPOS atom indices
+        # to match those in ATOM Block
+        dataframe['begin'] = dataframe.apply(
+            lambda row: self.index_lookup[row.begin_atom_rdkit], axis=1)
+        dataframe['end'] = dataframe.apply(
+            lambda row: self.index_lookup[row.end_atom_rdkit], axis=1)
+
+        # Sort by bond type
+        dataframe['bond_type'] = pd.Categorical(dataframe['bond_type'],
+                                                list(bond_types.values()))
+
+        tripos_bond = dataframe.sort_values(by=['bond_type', 'begin'])
         tripos_bond.index = np.arange(1, len(tripos_bond) + 1)
         tripos_bond = tripos_bond[['begin', 'end', 'bond_type']]
 
-        bond_block = '@<TRIPOS>BOND\n' + tripos_bond.to_string(
-            header=False) + '\n'
-
-        return bond_block
-
-    def print_mol2_file(self, filename=None):
-        """
-        Saves the current instance of the molecule to a mol2 file in the
-        current directory
-        """
-
-        if filename is None:
-            file_name = f'{self.smiles}.mol2'
-        elif filename[-5:] == '.mol2':
-            file_name = filename
-        else:
-            file_name = f'{filename}.mol2'
-
-        block = self.molecule_block() + self.atom_block() + self.bond_block()
-
-        with open(file_name, 'w') as file:
-            file.write(block)
-
-        return None
+        return tripos_bond
