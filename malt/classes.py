@@ -50,7 +50,7 @@ def open_file(filename):
 
 class Molecule:
 
-    def __init__(self, smiles, charge_path=None, xyz_path=None, no_of_mols=1,
+    def __init__(self, smiles, charge_path=None, xyz_path=None,
                  **kwargs):
         """
         For each molecule there should be a smiles string to extract atomic
@@ -68,7 +68,6 @@ class Molecule:
         generalisable work later on
         """
         self.smiles = smiles
-        self.length = no_of_mols
         self.charge_path = charge_path
         self.xyz_path = xyz_path
         self.index_lookup = None
@@ -76,7 +75,11 @@ class Molecule:
         self.mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
         AllChem.EmbedMolecule(self.mol)
 
-        self.charges = self.get_external_charges()
+        if self.charge_path is not None:
+            self.charges = self.get_external_charges()
+        else:
+            self.charges = self.get_xyz_charges()
+
         self.coordinates = self.get_xyz_coordinates()
 
         self.set_coordinates()
@@ -235,6 +238,27 @@ class Molecule:
         z = float(coords_list[3])
 
         return x, y, z
+
+    def get_xyz_charges(self):
+        """
+        If the charges are included in the title lines of the xyz file,
+        this function extracts them. It is called if a path to charges is
+        not provided.
+        :return: list of charges, indexed by atom ID
+        """
+        xyz_file = self.xyz_path
+        all_xyz_data = open_file(xyz_file)
+        charges = all_xyz_data[1]
+
+        # This bit is a workaround for a bug that shouldn't exist where a
+        # list is printed to the xyz file including the square brackets
+        if charges[0][0] == '[':
+            charges[0] = charges[0][1:]
+            charges[-1] = charges[-1][:-1]
+
+        charges = [float(charge) for charge in charges]
+
+        return charges
 
     def get_xyz_coordinates(self):
         """
