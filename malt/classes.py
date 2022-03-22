@@ -111,7 +111,7 @@ class Molecule:
                      'z_coord', 'sybyl', 'substruct', 'substruct_name',
                      'partial_charge', 'atom_symbol', 'atom_index_label'])
 
-        substruct_name = self.smiles
+        substruct_name = '****'
 
         for atom in self.mol.GetAtoms():
             atom_idx = atom.GetIdx()
@@ -130,11 +130,11 @@ class Molecule:
             # Append atom to dataframe of atomic information
             tripos_atom = tripos_atom.append(
                 {'rdkit_index': atom_idx, 'atom_name': atom_name,
-                 'x_coord': x,
-                 'y_coord': y, 'z_coord': z,
+                 'x_coord': "%.4f" % x,
+                 'y_coord': "%.4f" % y, 'z_coord': "%.4f" % z,
                  'sybyl': sybyl, 'substruct': NO_SUBSTRUCTS,
                  'substruct_name': substruct_name,
-                 'partial_charge': "%.3f" % charge,
+                 'partial_charge': "%.4f" % charge,
                  'atom_symbol': symbol, 'atom_index_label': atom_index_label},
                 ignore_index=True)
 
@@ -145,14 +145,35 @@ class Molecule:
         self.index_lookup = self.generate_index_mapper(tripos_atom)
 
         # Generate final dataframe, and return as a string
-        atom_block_df = tripos_atom[['atom_name', 'x_coord',
-                                     'y_coord', 'z_coord', 'sybyl',
-                                     'partial_charge']]
-
-        atom_block = '@<TRIPOS>ATOM\n' + atom_block_df.to_string(
-            header=False) + '\n'
+        atom_block = '@<TRIPOS>ATOM\n'
+        for idx in tripos_atom.index:
+            row = self.print_atom_row(idx, tripos_atom)
+            atom_block += row + '\n'
 
         return atom_block
+
+    @staticmethod
+    def print_atom_row(idx, dataframe):
+        """
+        Takes a row of atom information in dataframe and generates a correctly formatted string of atom info
+        :param idx: index of atom
+        :param dataframe: dataframe containing atom information
+        :return: string, row of atom block
+        """
+        index_chunk = idx
+        name_chunk = dataframe["atom_name"][idx]
+        x_chunk = dataframe["x_coord"][idx]
+        y_chunk = dataframe["y_coord"][idx]
+        z_chunk = dataframe["z_coord"][idx]
+        sybyl_chunk = dataframe["sybyl"][idx]
+        substruct_no = 1
+        substruct_name = dataframe["substruct_name"][idx]
+        charge_chunk = dataframe["partial_charge"][idx]
+
+        row = f'{index_chunk:>7} {name_chunk:<11}{x_chunk:>7}{y_chunk:>10}{z_chunk:>10} {sybyl_chunk:<10} ' \
+              f'{substruct_no} {substruct_name:<11}{charge_chunk:>7} '
+
+        return row
 
     def bond_block(self):
         """
@@ -172,10 +193,40 @@ class Molecule:
         # consistency between ATOM block and BOND block
         sorted_block = self.sort_bond_dataframe(bond_block)
 
-        bond_block = '@<TRIPOS>BOND\n' + sorted_block.to_string(
-            header=False) + '\n'
+        bond_block = '@<TRIPOS>BOND\n'
+
+        for idx in sorted_block.index:
+            row = self.print_bond_row(idx, sorted_block)
+            bond_block += row + '\n'
 
         return bond_block
+
+    def substructure_block(self):
+        """
+        Returns TRIPOS Substructure block - this is hardcoded in for now
+        :return: string
+        """
+        substructure_block = '@<TRIPOS>SUBSTRUCTURE\n'
+        substructure_block += '     1 ****        1 GROUP             0       ****    0 ROOT'
+
+        return substructure_block
+
+    @staticmethod
+    def print_bond_row(idx, dataframe):
+        """
+        Prints the correctly formatted row of the @TRIPOS BOND block for each bond
+        :param idx: index of bond
+        :param dataframe: dataframe of bond information
+        :return: string - row of TRIPOS Bond block
+        """
+        bond_id = idx
+        begin_atom = dataframe["begin"][idx]
+        end_atom = dataframe["end"][idx]
+        bond_type = dataframe["bond_type"][idx]
+
+        bond_row = f'{bond_id:>6}{begin_atom:>5}{end_atom:>5} {bond_type}'
+
+        return bond_row
 
     def print_mol2_file(self, filename=None):
         """
@@ -190,7 +241,7 @@ class Molecule:
         else:
             file_name = f'{filename}.mol2'
 
-        block = self.molecule_block() + self.atom_block() + self.bond_block()
+        block = self.molecule_block() + self.atom_block() + self.bond_block() + self.substructure_block()
 
         with open(file_name, 'w') as file:
             file.write(block)
