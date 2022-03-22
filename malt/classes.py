@@ -50,7 +50,7 @@ def open_file(filename):
 
 class Molecule:
 
-    def __init__(self, smiles, charge_path=None, xyz_path=None,
+    def __init__(self, smiles, charge_path=None, xyz_path=None, name=None
                  **kwargs):
         """
         For each molecule there should be a smiles string to extract atomic
@@ -71,6 +71,7 @@ class Molecule:
         self.charge_path = charge_path
         self.xyz_path = xyz_path
         self.index_lookup = None
+        self.name = name
 
         self.mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
         AllChem.EmbedMolecule(self.mol)
@@ -90,10 +91,15 @@ class Molecule:
         block for the instance of the molecule.
         The number of features and sets are hard-coded to 0
         """
-        charge_type = 'DFT'
+        charge_type = 'USER_CHARGES'
+
+        if self.name is None:
+            name = self.smiles
+        else:
+            name = self.name
 
         molecule_block = (f'@<TRIPOS>MOLECULE\n'
-                          f'{self.smiles}\n'
+                          f'{name}\n'
                           f'{self.num_atoms} {self.num_bonds} {NO_SUBSTRUCTS} 0 0\n '
                           f'{MOLECULE_TYPE}\n'
                           f'{charge_type}\n')
