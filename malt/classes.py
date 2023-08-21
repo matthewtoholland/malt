@@ -81,24 +81,23 @@ class Molecule:
                     self._xyz_mol = mol_from_xyz(self.path_to_xyz)
 
         elif smiles is not None:
-                elif arg.endswith('.mol2'):
-                    path_to_mol2 = arg
-                    print('chicken')
-                    self._mol2 = mol2(path_to_mol2)
-                    self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
-                    if self.name == None:
-                        self.name = path_to_mol2[:-5]
+            if arg.endswith('.mol2'):
+                path_to_mol2 = arg
+                print('chicken')
+                self._mol2 = mol2(path_to_mol2)
+                self._mol = Chem.MolFromMol2File(path_to_mol2, sanitize=False, removeHs=False)
+                if self.name == None:
+                    self.name = path_to_mol2[:-5]
+            elif CalculateCharges == False:
+                self._path_to_charges = arg
 
-                elif CalculateCharges == False:
-                    self._path_to_charges = arg
-
-                #Molecule is already within VEHICLe database
-                elif arg[0] == 'S' or 's':
-                    self._mol2 = vehicle_mol2(arg)
-                    self._mol =  self._mol2.mol_from_mol2()
-                    self.s_flag = True
-                    if self.name == None:
-                        self.name = arg
+            #Molecule is already within VEHICLe database
+            elif arg[0] == 'S' or 's':
+                self._mol2 = vehicle_mol2(arg)
+                self._mol =  self._mol2.mol_from_mol2()
+                self.s_flag = True
+                if self.name == None:
+                    self.name = arg
 
             self.smiles = smiles
             self._mol = Chem.MolFromSmiles(smiles)
